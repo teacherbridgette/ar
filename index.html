@@ -9,10 +9,16 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-      /* Safe-space resetting for clean portrait framing */
       html, body {
         margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-        font-family: 'SF Pro Text', -apple-system, 'Comic Sans MS', sans-serif;
+        font-family: 'SF Pro Text', -apple-system, sans-serif;
+        background-color: #000;
+      }
+
+      /* CRITICAL IPHONE FIX: Forces the AR viewport engine to stack correctly behind the UI */
+      .mindar-ui-loading, .mindar-ui-scanning, a-scene, canvas {
+        z-index: 1 !important;
+        position: absolute;
       }
 
       #splash {
@@ -26,31 +32,29 @@
         padding: 16px 36px; font-size: 22px; font-weight: bold;
         background-color: #ff5722; border: none; color: white;
         border-radius: 16px; cursor: pointer; margin-top: 20px;
-        box-shadow: 0px 6px 0px #b33611; transition: transform 0.1s;
+        box-shadow: 0px 6px 0px #b33611;
       }
-      .action-btn:active { transform: translateY(3px); box-shadow: 0px 3px 0px #b33611; }
 
-      /* Fullscreen Portrait Card Panel - Triggers immediately upon scanning */
+      /* Fullscreen Portrait Card Panel - Forced to the very top layer via z-index */
       #uiOverlay {
-        display: none; /* Hidden until card is scanned */
+        display: none; /* Stays hidden until image is scanned */
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 999;
+        z-index: 9999 !important; /* Higher than A-Frame canvas */
         flex-direction: column;
         justify-content: space-between;
         align-items: center;
-        background: rgba(43, 58, 66, 0.85); /* Sleek backdrop so camera is still slightly visible */
-        padding: window-fit(padding) 20px 50px 20px;
+        background: rgba(43, 58, 66, 0.85); /* Dark translucent overlay */
+        padding: 40px 20px 60px 20px;
         box-sizing: border-box;
       }
 
-      /* Text Wrapper with Side-by-Side Speaker Icon */
       .vocabulary-row {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 15px;
-        margin-top: 60px;
+        gap: 20px;
+        margin-top: 40px;
       }
 
       .vocabulary-text {
@@ -58,55 +62,53 @@
         font-weight: 900;
         color: #FFEB3B;
         margin: 0;
-        text-shadow: 0px 4px 8px rgba(0,0,0,0.5);
+        text-shadow: 0px 4px 8px rgba(0,0,0,0.6);
       }
 
       .speaker-icon-btn {
         background: #fff;
         border: none;
         border-radius: 50%;
-        width: 65px;
-        height: 65px;
-        font-size: 32px;
+        width: 70px;
+        height: 70px;
+        font-size: 36px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
       }
 
-      /* Native Video Display Box */
       .video-box-container {
         width: 85%;
-        max-width: 340px;
+        max-width: 320px;
         aspect-ratio: 1 / 1;
-        background: #000;
+        background: #111;
         border: 6px solid #fff;
-        border-radius: 24px;
+        border-radius: 28px;
         overflow: hidden;
-        box-shadow: 0px 12px 30px rgba(0,0,0,0.5);
+        box-shadow: 0px 16px 36px rgba(0,0,0,0.6);
         display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
       }
 
-      video {
+      #carVideoElement {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        display: none; /* Stays hidden until the video play button is tapped */
+        display: none;
       }
 
-      /* Custom Video Play Canvas Button State Overlays */
       #videoPlayOverlayBtn {
         position: absolute;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.4);
+        background: rgba(0,0,0,0.5);
         border: none;
         color: white;
-        font-size: 60px;
+        font-size: 65px;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -121,30 +123,26 @@
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
 
-        // Warm up and unlock core engines instantly on your first tap
+        // Pre-warm audio and video structures directly on first touch
         audioAsset = document.getElementById('carAudioElement');
         videoAsset = document.getElementById('carVideoElement');
         
         if (audioAsset) { audioAsset.load(); }
         if (videoAsset) { videoAsset.load(); }
         
-        // Micro-handshake for Speech Synthesis Engine setup
         if ('speechSynthesis' in window) {
           const warmUpSpeech = new SpeechSynthesisUtterance('');
           window.speechSynthesis.speak(warmUpSpeech);
         }
       }
 
-      // Card detected action handler
       function targetFoundAction() {
         document.getElementById('uiOverlay').style.display = 'flex';
       }
 
-      // Card lost action handler
       function targetLostAction() {
         document.getElementById('uiOverlay').style.display = 'none';
         
-        // Reset media items cleanly if user pulls device away
         if (videoAsset) {
           videoAsset.pause();
           videoAsset.style.display = 'none';
@@ -155,34 +153,31 @@
         }
       }
 
-      // Action: Play / Loop Video Control
+      // Action: Play and Loop the MP4 Video
       function triggerVideoPlayback() {
         if (videoAsset) {
           document.getElementById('videoPlayOverlayBtn').style.display = 'none';
           videoAsset.style.display = 'block';
           videoAsset.currentTime = 0;
-          videoAsset.play().catch(e => console.log("Video Playback blocked:", e));
+          videoAsset.play().catch(e => console.log("Video setup stalled:", e));
         }
       }
 
-      // Action: Speak out loud via Speech Engine + Play custom MP3 background track simultaneously
+      // Action: Play local MP3 track + Text-To-Speech simultaneously
       function triggerVocalSpeakerSystem() {
-        // 1. Fire local backing MP3 tracking track
         if (audioAsset) {
           audioAsset.currentTime = 0;
           audioAsset.play().catch(e => console.log("Audio file blocked:", e));
         }
 
-        // 2. Fire clean robotic text-to-speech engine out loud matching user prompt requests
         if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel(); // Stops text strings from overlapping stacking
+          window.speechSynthesis.cancel(); 
           const utterance = new SpeechSynthesisUtterance('a car');
           utterance.rate = 0.85; 
           window.speechSynthesis.speak(utterance);
         }
       }
 
-      // Explicit scanning link integration
       AFRAME.registerComponent('handler-car', { 
         init: function () {
           this.el.addEventListener('targetFound', () => targetFoundAction());
@@ -196,7 +191,7 @@
     
     <div id="splash">
       <h1>🧸 Toy AR Lesson 🤖</h1>
-      <p style="font-size: 18px; margin: 5px 0 15px 0;">Hold iPhone in Portrait mode, click below, then scan!</p>
+      <p style="font-size: 18px; margin: 5px 0 15px 0;">Hold iPhone in Portrait, click below, then scan!</p>
       <button class="action-btn" onclick="startARClass()">Start AR Class</button>
     </div>
 
@@ -222,7 +217,6 @@
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-      
       <a-entity mindar-image-target="targetIndex: 1" handler-car></a-entity>
     </a-scene>
 
