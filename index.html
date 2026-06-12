@@ -14,15 +14,15 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 999;
-        padding: 12px 24px;
+        padding: 15px 30px;
         background-color: #2196F3;
         color: white;
         border: none;
         border-radius: 25px;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
         cursor: pointer;
-        box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.4);
       }
     </style>
   </head>
@@ -31,7 +31,7 @@
     
     <button class="action-btn" id="playButton">Tap to Start Engine 🚗</button>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
       
       <a-assets>
         <video id="carVideo" src="car.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
@@ -41,7 +41,7 @@
       
       <a-marker preset="hiro">
         
-        <a-plane position="0 0.5 0" 
+        <a-plane position="0 0.2 0" 
                  rotation="-90 0 0" 
                  width="2" 
                  height="1.5"
@@ -58,7 +58,7 @@
         </a-text>
 
         <a-image src="#speakerIcon" 
-                 position="0 0.5 0.9" 
+                 position="0 0.3 0.9" 
                  rotation="-90 0 0" 
                  width="0.3" 
                  height="0.3"
@@ -72,19 +72,32 @@
     </a-scene>
 
     <script>
-      // JavaScript to handle user interaction and play media together
       const btn = document.getElementById('playButton');
       const video = document.getElementById('carVideo');
       const soundEl = document.querySelector('[sound]');
 
+      // Pre-load video states on page startup
+      window.addEventListener('load', () => {
+        video.load();
+      });
+
       btn.addEventListener('click', () => {
-        // Play the video
-        video.play();
+        // 1. Try to play the video normally
+        video.play().then(() => {
+          console.log("Video playing successfully");
+        }).catch((error) => {
+          console.log("Normal playback blocked. Running fail-safe muted video player...", error);
+          // Fail-safe: Browsers never block muted videos. Since sound comes from the MP3 anyway, this works perfectly.
+          video.muted = true;
+          video.play();
+        });
         
-        // Play the spatial audio attached to the speaker icon
-        soundEl.components.sound.playSound();
+        // 2. Play the separate MP3 sound from the speaker element
+        if (soundEl && soundEl.components.sound) {
+          soundEl.components.sound.playSound();
+        }
         
-        // Hide the button once activated
+        // 3. Hide the start button so it doesn't block the screen
         btn.style.display = 'none';
       });
     </script>
