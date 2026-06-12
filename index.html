@@ -44,39 +44,32 @@
         const textEntity = document.querySelector(textId);
         const audioEntity = document.querySelector(soundId);
 
-        // Stage 1: Say and display simple label ("a robot")
+        // Instantly update the text value (e.g., "a car")
         textEntity.setAttribute('value', `${article} ${toyName}`);
+        
+        // Speak the clean label immediately
         speak(`${article} ${toyName}`);
 
-        // Stage 2: Animate text position and transition to descriptive sentence
-        setTimeout(() => {
-          textEntity.setAttribute('value', `This is a ${toyName}.`);
-          textEntity.setAttribute('animation__move', {
-            property: 'position',
-            to: '0 0.6 0.3',
-            dur: 2000,
-            easing: 'easeInOutQuad'
-          });
-          speak(`This is a ${toyName}.`);
+        // Play the MP3 sound file immediately
+        if (audioEntity && audioEntity.components && audioEntity.components.sound) {
+          audioEntity.components.sound.playSound();
+        }
+
+        // Cool float animation for the text label
+        textEntity.setAttribute('animation__move', {
+          property: 'position',
+          from: '0 0.4 0.2',
+          to: '0 0.55 0.2',
+          dur: 1500,
+          dir: 'alternate',
+          loop: true,
+          easing: 'easeInOutQuad'
+        });
+
+        // Keeps track sequence open so it doesn't loop trigger on a single hold
+        setTimeout(() => { 
+          activeSequences[toyName] = false; 
         }, 2000);
-
-        // Stage 3: Play custom media sounds
-        setTimeout(() => {
-          if (audioEntity && audioEntity.components && audioEntity.components.sound) {
-            audioEntity.components.sound.playSound();
-          }
-        }, 4500);
-
-        // Stage 4: Run counting logic lesson layout
-        setTimeout(() => {
-          let plural = toyName === 'doll' ? 'dolls' : toyName === 'car' ? 'cars' : toyName === 'robot' ? 'robots' : 'yo-yos';
-          textEntity.setAttribute('value', `1 ${toyName}, 2 ${plural}.`);
-          speak(`1 ${toyName}, 2 ${plural}.`);
-          
-          setTimeout(() => { 
-            activeSequences[toyName] = false; 
-          }, 3000);
-        }, 7000);
       }
 
       function speak(phrase) {
@@ -87,7 +80,7 @@
         }
       }
 
-      // Safe Media Control Triggers tied to Tracking Filters
+      // Media Stream Control Wrapper
       function playTargetMedia(videoId, toyName, textId, soundId, article) {
         const video = document.querySelector(videoId);
         if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
@@ -99,7 +92,7 @@
         if (video) video.pause();
       }
 
-      // Register components matching your explicit targets.mind compilation sequence
+      // Event Tracking Registration Map matching targets.mind order
       AFRAME.registerComponent('handler-robot', { init: function () {
         this.el.addEventListener('targetFound', () => playTargetMedia('#robotVideo', 'robot', '#textRobot', '#soundChime', 'a'));
         this.el.addEventListener('targetLost', () => stopTargetMedia('#robotVideo'));
@@ -147,22 +140,22 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0" handler-robot>
-        <a-text id="textRobot" value="robot" align="center" color="#00BCD4" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-text>
+        <a-text id="textRobot" value="a robot" align="center" color="#00BCD4" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
         <a-video src="#robotVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
       <a-entity mindar-image-target="targetIndex: 1" handler-car>
-        <a-text id="textCar" value="car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-camera>
+        <a-text id="textCar" value="a car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
         <a-video src="#carVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
       <a-entity mindar-image-target="targetIndex: 2" handler-yoyo>
-        <a-text id="textYoyo" value="yo-yo" align="center" color="#4CAF50" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-text>
+        <a-text id="textYoyo" value="a yo-yo" align="center" color="#4CAF50" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
         <a-video src="#yoyoVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
       <a-entity mindar-image-target="targetIndex: 3" handler-doll>
-        <a-text id="textDoll" value="doll" align="center" color="#E91E63" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-text>
+        <a-text id="textDoll" value="a doll" align="center" color="#E91E63" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
         <a-video src="#dollVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
