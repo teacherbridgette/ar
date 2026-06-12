@@ -32,10 +32,7 @@
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
         
-        if ('speechSynthesis' in window) {
-          const unlock = new SpeechSynthesisUtterance('');
-          window.speechSynthesis.speak(unlock);
-        }
+        // Removed speech synthesis voice unlocking here to keep it completely quiet
       }
 
       function runToySequence(toyName, textId, soundId, article) {
@@ -45,11 +42,10 @@
         const textEntity = document.querySelector(textId);
         const audioEntity = document.querySelector(soundId);
 
-        // Instantly update the text value (e.g., "a car")
+        // Instantly update the text value visual (e.g., "a car")
         textEntity.setAttribute('value', `${article} ${toyName}`);
         
-        // Speak the clean label immediately
-        speak(`${article} ${toyName}`);
+        // NOTE: The speak() call has been removed from here so it no longer reads the text aloud.
 
         // Play the MP3 sound file immediately
         if (audioEntity && audioEntity.components && audioEntity.components.sound) {
@@ -71,14 +67,6 @@
         setTimeout(() => { 
           activeSequences[toyName] = false; 
         }, 2000);
-      }
-
-      function speak(phrase) {
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(phrase);
-          utterance.rate = 0.85; 
-          window.speechSynthesis.speak(utterance);
-        }
       }
 
       // Media Stream Control Wrapper
