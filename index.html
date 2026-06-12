@@ -39,13 +39,13 @@
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
         
-        // Safety Fallback: If MindAR system crashes or stays white for 4 seconds, alert the user
+        // Safety check fallback
         setTimeout(() => {
           const videoEl = document.querySelector('video');
           if (!videoEl || videoEl.style.display === 'none') {
-            alert("Camera path blocked! Please double check that 'targets.mind' is uploaded in the exact same folder on GitHub.");
+            alert("Camera setup delayed. Please ensure you have granted camera permissions to your browser!");
           }
-        }, 4000);
+        }, 5000);
 
         const unlock = new SpeechSynthesisUtterance('');
         window.speechSynthesis.speak(unlock);
@@ -106,7 +106,7 @@
       }});
     </script>
 
-    <a-scene mindar-image="imageTargetSrc: targets.mind;" 
+    <a-scene mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/teacherbridgetette/ar@main/targets.mind;" 
              embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
