@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     
+    <script src="https://unpkg.com/aframe-chromakey-material/dist/aframe-chromakey-material.min.js"></script>
+    
     <style>
       #splash {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -24,7 +26,7 @@
       }
       button:active { transform: translateY(3px); box-shadow: 0px 3px 0px #b33611; }
 
-      /* The Sound Overlay Icon Button */
+      /* Floating Sound Interaction Button */
       #audioControl {
         display: none; 
         position: fixed;
@@ -32,30 +34,31 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 999;
-        background: rgba(255, 235, 59, 0.9);
+        background: rgba(255, 235, 59, 0.95);
         border: 4px solid #fff;
         border-radius: 50%;
-        width: 80px;
-        height: 80px;
-        font-size: 40px;
+        width: 85px;
+        height: 85px;
+        font-size: 42px;
         cursor: pointer;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        box-shadow: 0px 6px 12px rgba(0,0,0,0.35);
         align-items: center;
         justify-content: center;
       }
     </style>
 
     <script>
+      // Browser unlocking initialization pipeline
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
 
-        // Critical: Force the browser to initialize and cache the video stream on first user tap
+        // Pre-load and cache stream vectors on user interactive handshake
         const video = document.querySelector('#carVideo');
         if (video) {
           video.load();
           video.play().then(() => {
             video.pause();
-          }).catch(e => console.log("Video setup error:", e));
+          }).catch(e => console.log("Video engine warmup:", e));
         }
       }
 
@@ -63,17 +66,12 @@
         const video = document.querySelector(videoId);
         if (video) { 
           video.muted = true;
-          // Safari fix: resetting current time kicks the rendering loop alive
-          video.currentTime = 0; 
+          video.currentTime = 0; // Clears old static buffers on Apple frames
           
-          // Force a play statement that updates A-Frame textures
           let playPromise = video.play();
           if (playPromise !== undefined) {
-            playPromise.then(() => {
-              // Video texture is rendering cleanly
-            }).catch(e => {
-              console.log("Playback engine stalled:", e);
-              // Fallback fallback: try playing it muted directly via native DOM
+            playPromise.catch(e => {
+              console.log("Fallback execution active:", e);
               video.muted = true;
               video.play();
             });
@@ -135,9 +133,15 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 1" handler-car>
+        
         <a-text id="textCar" value="a car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
         
-        <a-video src="#carVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
+        <a-entity geometry="primitive: plane; width: 1; height: 1" 
+                  material="shader: chromakey; src: #carVideo; color: 0.0 1.0 0.0"
+                  position="0 0 0.1"
+                  rotation="0 0 0">
+        </a-entity>
+
       </a-entity>
 
       <a-entity id="soundCar" sound="src: #carSoundAsset; poolSize: 2"></a-entity>
