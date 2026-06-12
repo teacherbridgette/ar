@@ -23,6 +23,7 @@
         font-weight: bold;
         cursor: pointer;
         box-shadow: 0px 4px 10px rgba(0,0,0,0.4);
+        font-family: sans-serif;
       }
     </style>
   </head>
@@ -34,8 +35,8 @@
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
       
       <a-assets>
-        <video id="carVideo" src="car.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
-        <audio id="carSound" src="car_sound.mp3" crossorigin="anonymous"></audio>
+        <video id="carVideo" src="./car.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
+        <audio id="carSound" src="./car_sound.mp3" crossorigin="anonymous"></audio>
         <img id="speakerIcon" src="https://img.icons8.com/ios-filled/100/ffffff/speaker.png" crossorigin="anonymous">
       </a-assets>
       
