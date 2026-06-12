@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Toy Vocabulary Hiro AR</title>
+    <title>Toy Vocabulary Portrait AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
@@ -37,7 +37,7 @@
         box-shadow: 0px 6px 0px #b33611;
       }
 
-      /* Fullscreen Native UI Overlay */
+      /* Fullscreen Native UI Layer */
       #uiOverlay {
         display: none; 
         position: fixed;
@@ -51,35 +51,36 @@
         box-sizing: border-box;
       }
 
-      .vocabulary-row {
-        display: flex; align-items: center; justify-content: center; gap: 20px;
+      .vocabulary-row { display: flex; align-items: center; justify-content: center; gap: 20px; }
+      .vocabulary-text { font-size: 3.5rem; font-weight: 900; color: #FFEB3B; margin: 0; text-shadow: 0px 4px 8px rgba(0,0,0,0.6); }
+      
+      .speaker-icon-btn { 
+        background: #fff; border: none; border-radius: 50%; 
+        width: 70px; height: 70px; font-size: 36px; cursor: pointer; 
+        display: flex; align-items: center; justify-content: center; 
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.4); 
       }
 
-      .vocabulary-text {
-        font-size: 3.5rem; font-weight: 900; color: #FFEB3B; margin: 0;
-        text-shadow: 0px 4px 8px rgba(0,0,0,0.6);
+      .video-box-container { 
+        width: 85%; max-width: 320px; aspect-ratio: 1 / 1; 
+        background: #111; border: 6px solid #fff; border-radius: 28px; 
+        overflow: hidden; box-shadow: 0px 16px 36px rgba(0,0,0,0.6); 
+        display: flex; align-items: center; justify-content: center; position: relative; 
       }
 
-      .speaker-icon-btn {
-        background: #fff; border: none; border-radius: 50%;
-        width: 70px; height: 70px; font-size: 36px; cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
+      /* CRITICAL FIX: The video element defaults to block with opacity 0 to warm up device pipeline */
+      #carVideoElement { 
+        width: 100% !important; 
+        height: 100% !important; 
+        object-fit: cover !important; 
+        display: block;
+        opacity: 0;
       }
 
-      .video-box-container {
-        width: 85%; max-width: 320px; aspect-ratio: 1 / 1;
-        background: #111; border: 6px solid #fff; border-radius: 28px;
-        overflow: hidden; box-shadow: 0px 16px 36px rgba(0,0,0,0.6);
-        display: flex; align-items: center; justify-content: center; position: relative;
-      }
-
-      #carVideoElement { width: 100%; height: 100%; object-fit: cover; display: none; }
-
-      #videoPlayOverlayBtn {
-        position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
-        border: none; color: white; font-size: 65px; cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
+      #videoPlayOverlayBtn { 
+        position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.5); 
+        border: none; color: white; font-size: 65px; cursor: pointer; 
+        display: flex; align-items: center; justify-content: center; z-index: 10;
       }
     </style>
 
@@ -94,14 +95,25 @@
         videoAsset = document.getElementById('carVideoElement');
         
         if (audioAsset) audioAsset.load();
-        if (videoAsset) videoAsset.load();
+        
+        // Forced iOS Hardware Bypass: Kick off video decoder immediately on first click!
+        if (videoAsset) {
+          videoAsset.load();
+          videoAsset.muted = true;
+          videoAsset.play().then(() => {
+            videoAsset.pause();
+          }).catch(e => console.log("Video warmup rejected:", e));
+        }
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).catch(e => console.log(e));
+        }
         
         if ('speechSynthesis' in window) {
           window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
         }
       }
 
-      // Re-built Marker Event Components
       AFRAME.registerComponent('marker-handler', {
         init: function () {
           this.el.addEventListener('markerFound', () => {
@@ -112,7 +124,7 @@
             document.getElementById('uiOverlay').style.display = 'none';
             if (videoAsset) {
               videoAsset.pause();
-              videoAsset.style.display = 'none';
+              videoAsset.style.opacity = "0";
               document.getElementById('videoPlayOverlayBtn').style.display = 'flex';
             }
             if (audioAsset) {
@@ -122,12 +134,22 @@
         }
       });
 
+      // Action: Force Video Frames Onto iOS Screen
       function triggerVideoPlayback() {
         if (videoAsset) {
           document.getElementById('videoPlayOverlayBtn').style.display = 'none';
-          videoAsset.style.display = 'block';
+          videoAsset.style.opacity = "1"; // Reveal the video tracks visually
           videoAsset.currentTime = 0;
-          videoAsset.play().catch(e => console.log(e));
+          videoAsset.muted = true; // iOS demands inline looping web videos stay muted to render
+          
+          let playPromise = videoAsset.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              // Forced fallback loop execution if engine stutters
+              videoAsset.muted = true;
+              videoAsset.play();
+            });
+          }
         }
       }
 
@@ -162,7 +184,7 @@
 
       <div class="video-box-container">
         <button id="videoPlayOverlayBtn" onclick="triggerVideoPlayback()">▶️</button>
-        <video id="carVideoElement" src="car.mp4" loop playsinline webkit-playsinline></video>
+        <video id="carVideoElement" src="car.mp4" loop playsinline webkit-playsinline muted autoplay></video>
       </div>
 
       <p style="color: #fff; font-size: 14px; opacity: 0.8; margin: 0; font-weight: bold;">Move camera away to look at another toy</p>
@@ -170,13 +192,8 @@
 
     <audio id="carAudioElement" src="car_sound.mp3" preload="auto" crossorigin="anonymous"></audio>
 
-    <a-scene vr-mode-ui="enabled: false"
-             embedded
-             arjs="sourceType: webcam; debugUIEnabled: false;">
-      
-      <a-marker preset="hiro" marker-handler>
-      </a-marker>
-
+    <a-scene vr-mode-ui="enabled: false" embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+      <a-marker preset="hiro" marker-handler></a-marker>
       <a-entity camera></a-entity>
     </a-scene>
 
