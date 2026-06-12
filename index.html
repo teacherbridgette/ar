@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js"></script>
     
     <style>
-      /* Friendly classroom splash screen */
       #splash {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: #2b3a42; color: white;
@@ -35,17 +34,23 @@
     </div>
 
     <script>
-      // Tracking states to prevent overlapping audio loops
       let activeSequences = { 'doll': false, 'yo-yo': false, 'robot': false, 'car': false };
 
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
-        // Unlock speech engine for mobile/iPad browsers
+        
+        // Safety Fallback: If MindAR system crashes or stays white for 4 seconds, alert the user
+        setTimeout(() => {
+          const videoEl = document.querySelector('video');
+          if (!videoEl || videoEl.style.display === 'none') {
+            alert("Camera path blocked! Please double check that 'targets.mind' is uploaded in the exact same folder on GitHub.");
+          }
+        }, 4000);
+
         const unlock = new SpeechSynthesisUtterance('');
         window.speechSynthesis.speak(unlock);
       }
 
-      // Reusable animation and speech routine for your toys
       function runToySequence(toyName, textId, soundId) {
         if (activeSequences[toyName]) return; 
         activeSequences[toyName] = true;
@@ -53,10 +58,8 @@
         const textEntity = document.querySelector(textId);
         const audioEntity = document.querySelector(soundId);
 
-        // 1. Instantly say the vocabulary word
         speak(toyName);
 
-        // 2. At 2 seconds: Change text to "This is a ___.", glide up, and speak the sentence
         setTimeout(() => {
           textEntity.setAttribute('value', `This is a ${toyName}.`);
           textEntity.setAttribute('animation__move', {
@@ -68,14 +71,12 @@
           speak(`This is a ${toyName}.`);
         }, 2000);
 
-        // 3. At 4.5 seconds: Play a magical toy chime sound effect
         setTimeout(() => {
           if (audioEntity && audioEntity.components.sound) {
             audioEntity.components.sound.playSound();
           }
         }, 4500);
 
-        // 4. At 7 seconds: Count "1 [toy], 2 [toy]s."
         setTimeout(() => {
           let plural = toyName === 'doll' ? 'dolls' : toyName === 'car' ? 'cars' : toyName === 'robot' ? 'robots' : 'yo-yos';
           textEntity.setAttribute('value', `1 ${toyName}, 2 ${plural}.`);
@@ -86,12 +87,11 @@
       function speak(phrase) {
         if ('speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(phrase);
-          utterance.rate = 0.85; // Clear speed for students
+          utterance.rate = 0.85; 
           window.speechSynthesis.speak(utterance);
         }
       }
 
-      // Register components connected to your targetIndex order
       AFRAME.registerComponent('handler-doll', { init: function () {
         this.el.addEventListener('targetFound', () => runToySequence('doll', '#textDoll', '#soundChime'));
       }});
@@ -106,7 +106,7 @@
       }});
     </script>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" 
+    <a-scene mindar-image="imageTargetSrc: targets.mind;" 
              embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
