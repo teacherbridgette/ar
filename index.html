@@ -14,7 +14,7 @@
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: #2b3a42; color: white;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
-        z-index: 99999; font-family: 'Comic Sans MS', 'Fredoka One', sans-serif; text-align: center;
+        z-index: 99999; font-family: 'Comic Sans MS', sans-serif; text-align: center;
       }
       button {
         padding: 15px 35px; font-size: 22px; font-weight: bold;
@@ -35,19 +35,21 @@
     </div>
 
     <script>
-      // Tracking states to prevent overlapping audio loops
-      let activeSequences = { yo-yo: false, robot: false, doll: false, kite: false };
+      // FIXED: Added quotes around 'yo-yo' so JavaScript doesn't read the hyphen as a minus sign
+      let activeSequences = { 'yo-yo': false, 'robot': false, 'doll': false, 'kite': false };
 
       function startARClass() {
+        // Hide splash screen
         document.getElementById('splash').style.display = 'none';
-        // Unlock speech engine for mobile/iPad browsers
+        
+        // Unlock browser speech engine safely
         const unlock = new SpeechSynthesisUtterance('');
         window.speechSynthesis.speak(unlock);
       }
 
       // Reusable animation and speech routine for the toys
       function runToySequence(toyName, textId, soundId) {
-        if (activeSequences[toyName]) return; // Stop if already running
+        if (activeSequences[toyName]) return; 
         activeSequences[toyName] = true;
 
         const textEntity = document.querySelector(textId);
@@ -86,12 +88,12 @@
       function speak(phrase) {
         if ('speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(phrase);
-          utterance.rate = 0.85; // Slower cadence clear for EFL/young learners
+          utterance.rate = 0.85; 
           window.speechSynthesis.speak(utterance);
         }
       }
 
-      // Register separate components for each tracking target
+      // Register components with safe string arguments
       AFRAME.registerComponent('handler-yoyo', { init: function () {
         this.el.addEventListener('targetFound', () => runToySequence('yo-yo', '#textYoyo', '#soundChime'));
       }});
