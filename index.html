@@ -27,11 +27,11 @@
     </style>
 
     <script>
-      // Component tracking logic registered cleanly BEFORE the HTML bodies load
+      // Register components cleanly BEFORE the HTML structure builds
       AFRAME.registerComponent('handler-robot', { init: function () {
         this.el.addEventListener('targetFound', () => {
           const video = document.querySelector('#robotVideo');
-          if (video) video.play();
+          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
           const sound = document.querySelector('#soundChime');
           if (sound && sound.components.sound) sound.components.sound.playSound();
         });
@@ -44,7 +44,7 @@
       AFRAME.registerComponent('handler-car', { init: function () {
         this.el.addEventListener('targetFound', () => {
           const video = document.querySelector('#carVideo');
-          if (video) video.play();
+          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
           const sound = document.querySelector('#soundCar');
           if (sound && sound.components.sound) sound.components.sound.playSound();
         });
@@ -57,7 +57,7 @@
       AFRAME.registerComponent('handler-yoyo', { init: function () {
         this.el.addEventListener('targetFound', () => {
           const video = document.querySelector('#yoyoVideo');
-          if (video) video.play();
+          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
           const sound = document.querySelector('#soundChime');
           if (sound && sound.components.sound) sound.components.sound.playSound();
         });
@@ -70,7 +70,7 @@
       AFRAME.registerComponent('handler-doll', { init: function () {
         this.el.addEventListener('targetFound', () => {
           const video = document.querySelector('#dollVideo');
-          if (video) video.play();
+          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
           const sound = document.querySelector('#soundChime');
           if (sound && sound.components.sound) sound.components.sound.playSound();
         });
@@ -80,15 +80,16 @@
         });
       }});
 
-      // Function to explicitly prompt browser camera permissions on click
-      async function startARClass() {
-        try {
-          // Explicitly demand device camera permission stream from the system
-          await navigator.mediaDevices.getUserMedia({ video: true });
-          document.getElementById('splash').style.display = 'none';
-        } catch (err) {
-          alert("Camera access was blocked or denied! Please enable camera access in your browser settings.");
-          console.error("Camera access error:", err);
+      // Hand over system-level startup commands safely to MindAR
+      function startARClass() {
+        // 1. Hide UI Splash
+        document.getElementById('splash').style.display = 'none';
+        
+        // 2. Safely call MindAR's camera setup system directly
+        const sceneEl = document.querySelector('a-scene');
+        const arSystem = sceneEl.systems["mindar-image-system"];
+        if (arSystem) {
+          arSystem.start(); // This safely triggers the default camera request!
         }
       }
     </script>
@@ -98,16 +99,16 @@
     
     <div id="splash">
       <h1>🧸 Toy AR Lesson 🤖</h1>
-      <p style="font-size: 18px;">Grant camera access to begin!</p>
+      <p style="font-size: 18px;">Click to scan your toy images!</p>
       <button onclick="startARClass()">Start AR Class</button>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no;" 
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no;" 
              embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <a-asset-item id="optimerBold" src="https://rawgit.com/mrdoob/three.js/dev/examples/fonts/optimer_bold.typeface.json"></a-asset-item>
+        <a-asset-item id="optimerBold" src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/fonts/optimer_bold.typeface.json"></a-asset-item>
         
         <audio id="magicChime" src="https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg" preload="auto"></audio>
         <audio id="carSoundAsset" src="./car_sound.mp3" preload="auto"></audio>
