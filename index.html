@@ -7,7 +7,6 @@
     
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://unpkg.com/aframe-text-geometry-component@0.5.1/dist/aframe-text-geometry-component.min.js"></script>
     <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     
     <style>
@@ -27,70 +26,99 @@
     </style>
 
     <script>
-      // Target Event Handlers (Ordered cleanly according to your index mapping)
-      AFRAME.registerComponent('handler-robot', { init: function () {
-        this.el.addEventListener('targetFound', () => {
-          const video = document.querySelector('#robotVideo');
-          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
-          const sound = document.querySelector('#soundChime');
-          if (sound && sound.components.sound) sound.components.sound.playSound();
-        });
-        this.el.addEventListener('targetLost', () => {
-          const video = document.querySelector('#robotVideo');
-          if (video) video.pause();
-        });
-      }});
+      let activeSequences = { 'robot': false, 'car': false, 'yo-yo': false, 'doll': false };
 
-      AFRAME.registerComponent('handler-car', { init: function () {
-        this.el.addEventListener('targetFound', () => {
-          const video = document.querySelector('#carVideo');
-          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
-          const sound = document.querySelector('#soundCar');
-          if (sound && sound.components.sound) sound.components.sound.playSound();
-        });
-        this.el.addEventListener('targetLost', () => {
-          const video = document.querySelector('#carVideo');
-          if (video) video.pause();
-        });
-      }});
-
-      AFRAME.registerComponent('handler-yoyo', { init: function () {
-        this.el.addEventListener('targetFound', () => {
-          const video = document.querySelector('#yoyoVideo');
-          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
-          const sound = document.querySelector('#soundChime');
-          if (sound && sound.components.sound) sound.components.sound.playSound();
-        });
-        this.el.addEventListener('targetLost', () => {
-          const video = document.querySelector('#yoyoVideo');
-          if (video) video.pause();
-        });
-      }});
-
-      AFRAME.registerComponent('handler-doll', { init: function () {
-        this.el.addEventListener('targetFound', () => {
-          const video = document.querySelector('#dollVideo');
-          if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
-          const sound = document.querySelector('#soundChime');
-          if (sound && sound.components.sound) sound.components.sound.playSound();
-        });
-        this.el.addEventListener('targetLost', () => {
-          const video = document.querySelector('#dollVideo');
-          if (video) video.pause();
-        });
-      }});
-
-      // Safe initialization pipeline
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
         
-        // Handover camera startup directly to MindAR's controller block
-        const sceneEl = document.querySelector('a-scene');
-        const arSystem = sceneEl.systems["mindar-image-system"];
-        if (arSystem) {
-          arSystem.start();
+        if ('speechSynthesis' in window) {
+          const unlock = new SpeechSynthesisUtterance('');
+          window.speechSynthesis.speak(unlock);
         }
       }
+
+      function runToySequence(toyName, textId, soundId, article) {
+        if (activeSequences[toyName]) return; 
+        activeSequences[toyName] = true;
+
+        const textEntity = document.querySelector(textId);
+        const audioEntity = document.querySelector(soundId);
+
+        // Stage 1: Say and display simple label ("a robot")
+        textEntity.setAttribute('value', `${article} ${toyName}`);
+        speak(`${article} ${toyName}`);
+
+        // Stage 2: Animate text position and transition to descriptive sentence
+        setTimeout(() => {
+          textEntity.setAttribute('value', `This is a ${toyName}.`);
+          textEntity.setAttribute('animation__move', {
+            property: 'position',
+            to: '0 0.6 0.3',
+            dur: 2000,
+            easing: 'easeInOutQuad'
+          });
+          speak(`This is a ${toyName}.`);
+        }, 2000);
+
+        // Stage 3: Play custom media sounds
+        setTimeout(() => {
+          if (audioEntity && audioEntity.components && audioEntity.components.sound) {
+            audioEntity.components.sound.playSound();
+          }
+        }, 4500);
+
+        // Stage 4: Run counting logic lesson layout
+        setTimeout(() => {
+          let plural = toyName === 'doll' ? 'dolls' : toyName === 'car' ? 'cars' : toyName === 'robot' ? 'robots' : 'yo-yos';
+          textEntity.setAttribute('value', `1 ${toyName}, 2 ${plural}.`);
+          speak(`1 ${toyName}, 2 ${plural}.`);
+          
+          setTimeout(() => { 
+            activeSequences[toyName] = false; 
+          }, 3000);
+        }, 7000);
+      }
+
+      function speak(phrase) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(phrase);
+          utterance.rate = 0.85; 
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
+      // Safe Media Control Triggers tied to Tracking Filters
+      function playTargetMedia(videoId, toyName, textId, soundId, article) {
+        const video = document.querySelector(videoId);
+        if (video) { video.muted = true; video.play().catch(e => console.log(e)); }
+        runToySequence(toyName, textId, soundId, article);
+      }
+
+      function stopTargetMedia(videoId) {
+        const video = document.querySelector(videoId);
+        if (video) video.pause();
+      }
+
+      // Register components matching your explicit targets.mind compilation sequence
+      AFRAME.registerComponent('handler-robot', { init: function () {
+        this.el.addEventListener('targetFound', () => playTargetMedia('#robotVideo', 'robot', '#textRobot', '#soundChime', 'a'));
+        this.el.addEventListener('targetLost', () => stopTargetMedia('#robotVideo'));
+      }});
+
+      AFRAME.registerComponent('handler-car', { init: function () {
+        this.el.addEventListener('targetFound', () => playTargetMedia('#carVideo', 'car', '#textCar', '#soundCar', 'a'));
+        this.el.addEventListener('targetLost', () => stopTargetMedia('#carVideo'));
+      }});
+
+      AFRAME.registerComponent('handler-yoyo', { init: function () {
+        this.el.addEventListener('targetFound', () => playTargetMedia('#yoyoVideo', 'yo-yo', '#textYoyo', '#soundChime', 'a'));
+        this.el.addEventListener('targetLost', () => stopTargetMedia('#yoyoVideo'));
+      }});
+
+      AFRAME.registerComponent('handler-doll', { init: function () {
+        this.el.addEventListener('targetFound', () => playTargetMedia('#dollVideo', 'doll', '#textDoll', '#soundChime', 'a'));
+        this.el.addEventListener('targetLost', () => stopTargetMedia('#dollVideo'));
+      }});
     </script>
   </head>
   
@@ -102,13 +130,11 @@
       <button onclick="startARClass()">Start AR Class</button>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; uiLoading: yes; uiScanning: yes; uiError: yes;" 
              embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <a-asset-item id="optimerBold" src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/fonts/optimer_bold.typeface.json"></a-asset-item>
-        
         <audio id="magicChime" src="https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg" preload="auto"></audio>
         <audio id="carSoundAsset" src="./car_sound.mp3" preload="auto"></audio>
         
@@ -121,23 +147,23 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0" handler-robot>
-        <a-entity text-geometry="value: robot; font: #optimerBold; size: 0.18; height: 0.04;" material="color: #00BCD4; roughness: 0.3" position="-0.25 0.6 0.1" look-at="[a-camera]"></a-entity>
-        <a-video src="#robotVideo" width="1" height="1" position="0 0 0.1" rotation="90 0 0"></a-video>
+        <a-text id="textRobot" value="robot" align="center" color="#00BCD4" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-text>
+        <a-video src="#robotVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
       <a-entity mindar-image-target="targetIndex: 1" handler-car>
-        <a-entity text-geometry="value: car; font: #optimerBold; size: 0.18; height: 0.04;" material="color: #FFEB3B; roughness: 0.3" position="-0.15 0.6 0.1" look-at="[a-camera]"></a-entity>
-        <a-video src="#carVideo" width="1" height="1" position="0 0 0.1" rotation="90 0 0"></a-video>
+        <a-text id="textCar" value="car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-camera>
+        <a-video src="#carVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
       <a-entity mindar-image-target="targetIndex: 2" handler-yoyo>
-        <a-entity text-geometry="value: yo-yo; font: #optimerBold; size: 0.18; height: 0.04;" material="color: #4CAF50; roughness: 0.3" position="-0.25 0.6 0.1" look-at="[a-camera]"></a-entity>
-        <a-video src="#yoyoVideo" width="1" height="1" position="0 0 0.1" rotation="90 0 0"></a-video>
+        <a-text id="textYoyo" value="yo-yo" align="center" color="#4CAF50" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-text>
+        <a-video src="#yoyoVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
       <a-entity mindar-image-target="targetIndex: 3" handler-doll>
-        <a-entity text-geometry="value: doll; font: #optimerBold; size: 0.18; height: 0.04;" material="color: #E91E63; roughness: 0.3" position="-0.15 0.6 0.1" look-at="[a-camera]"></a-entity>
-        <a-video src="#dollVideo" width="1" height="1" position="0 0 0.1" rotation="90 0 0"></a-video>
+        <a-text id="textDoll" value="doll" align="center" color="#E91E63" font="kelsonsans" position="0 0.4 0.2" scale="1.2 1.2 1.2" look-at="[a-camera]"></a-text>
+        <a-video src="#dollVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
       <a-entity id="soundChime" sound="src: #magicChime; poolSize: 4"></a-entity>
