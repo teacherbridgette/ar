@@ -51,6 +51,9 @@
         const textEntity = document.querySelector(textId);
         const audioEntity = document.querySelector(soundId);
 
+        // Reset text value in case it was modified on a previous scan
+        textEntity.setAttribute('value', toyName);
+
         speak(toyName);
 
         setTimeout(() => {
@@ -65,7 +68,8 @@
         }, 2000);
 
         setTimeout(() => {
-          if (audioEntity && audioEntity.components.sound) {
+          // FIX: Improved sound execution checking
+          if (audioEntity && audioEntity.components && audioEntity.components.sound) {
             audioEntity.components.sound.playSound();
           }
         }, 4500);
@@ -74,6 +78,9 @@
           let plural = toyName === 'doll' ? 'dolls' : toyName === 'car' ? 'cars' : toyName === 'robot' ? 'robots' : 'yo-yos';
           textEntity.setAttribute('value', `1 ${toyName}, 2 ${plural}.`);
           speak(`1 ${toyName}, 2 ${plural}.`);
+          
+          // Reset the sequence flag after completion so it can be scanned again later
+          setTimeout(() => { activeSequences[toyName] = false; }, 3000);
         }, 7000);
       }
 
@@ -85,6 +92,7 @@
         }
       }
 
+      // Register MindAR event handlers
       AFRAME.registerComponent('handler-doll', { init: function () {
         this.el.addEventListener('targetFound', () => runToySequence('doll', '#textDoll', '#soundChime'));
       }});
