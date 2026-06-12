@@ -28,6 +28,7 @@
     <script>
       let activeSequences = { 'robot': false, 'car': false, 'yo-yo': false, 'doll': false };
 
+      // Safe initialization pipeline
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
         
@@ -55,7 +56,7 @@
           audioEntity.components.sound.playSound();
         }
 
-        // Cool float animation for the text label
+        // Floating text animation layout
         textEntity.setAttribute('animation__move', {
           property: 'position',
           from: '0 0.4 0.2',
