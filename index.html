@@ -1,83 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Toy Vocabulary Lesson</title>
-  <style>
-    body {
-      background-color: #2b3a42;
-      color: white;
-      font-family: 'Comic Sans MS', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    #displayArea {
-      display: none;
-      text-align: center;
-    }
-    h1 {
-      color: #FFEB3B;
-      font-size: 3rem;
-      margin-bottom: 15px;
-    }
-    video {
-      width: 90%;
-      max-width: 500px;
-      border-radius: 12px;
-      box-shadow: 0px 8px 24px rgba(0,0,0,0.4);
-    }
-    button {
-      padding: 15px 35px;
-      font-size: 22px;
-      font-weight: bold;
-      background-color: #ff5722;
-      border: none;
-      color: white;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0px 6px 0px #b33611;
-    }
-    button:active {
-      transform: translateY(3px);
-      box-shadow: 0px 3px 0px #b33611;
-    }
-  </style>
-</head>
-<body>
-
-  <button id="startBtn" onclick="triggerMedia()">Discover Toy</button>
-
-  <div id="displayArea">
-    <h1>a car</h1>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Toy Vocabulary AR Lesson</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     
-    <video id="toyVideo" loop playsinline muted crossorigin="anonymous">
-      <source src="./car.mp4" type="video/mp4">
-    </video>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     
-    <audio id="toyAudio" crossorigin="anonymous">
-      <source src="./car_sound.mp3" type="audio/mpeg">
-    </audio>
-  </div>
+    <style>
+      #splash {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #2b3a42; color: white;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        z-index: 99999; font-family: 'Comic Sans MS', sans-serif; text-align: center;
+      }
+      button {
+        padding: 15px 35px; font-size: 22px; font-weight: bold;
+        background-color: #ff5722; border: none; color: white;
+        border-radius: 12px; cursor: pointer; margin-top: 20px;
+        box-shadow: 0px 6px 0px #b33611;
+      }
+      button:active { transform: translateY(3px); box-shadow: 0px 3px 0px #b33611; }
 
-  <script>
-    function triggerMedia() {
-      // Hide button and reveal content
-      document.getElementById('startBtn').style.display = 'none';
-      document.getElementById('displayArea').style.display = 'block';
+      /* The Sound Overlay Icon Button */
+      #audioControl {
+        display: none; /* Hidden until target is scanned */
+        position: fixed;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 999;
+        background: rgba(255, 235, 59, 0.9); /* Bright yellow matching car theme */
+        border: 4px solid #fff;
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        font-size: 40px;
+        cursor: pointer;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
 
-      const video = document.getElementById('toyVideo');
-      const audio = document.getElementById('toyAudio');
+    <script>
+      // Safe initialization pipeline
+      function startARClass() {
+        document.getElementById('splash').style.display = 'none';
+      }
 
-      // Sync the play states immediately
-      video.play().catch(err => console.error("Video failed:", err));
-      audio.play().catch(err => console.error("Audio failed:", err));
-    }
-  </script>
+      // Play video immediately on scan
+      function targetFoundAction(videoId) {
+        const video = document.querySelector(videoId);
+        if (video) { 
+          video.muted = true; 
+          video.play().catch(e => console.log(e)); 
+        }
+        // Show the sound button on screen
+        document.getElementById('audioControl').style.display = 'flex';
+      }
 
-</body>
+      // Pause video when camera loses the target
+      function targetLostAction(videoId) {
+        const video = document.querySelector(videoId);
+        if (video) video.pause();
+        // Hide the sound button
+        document.getElementById('audioControl').style.display = 'none';
+      }
+
+      // Manual Audio Trigger Function for the Button Click
+      function playCarSound() {
+        const audioEntity = document.querySelector('#soundCar');
+        if (audioEntity && audioEntity.components && audioEntity.components.sound) {
+          audioEntity.components.sound.playSound();
+        }
+      }
+
+      // Event Tracking Registration Map matching your target index
+      AFRAME.registerComponent('handler-car', { 
+        init: function () {
+          this.el.addEventListener('targetFound', () => targetFoundAction('#carVideo'));
+          this.el.addEventListener('targetLost', () => targetLostAction('#carVideo'));
+        }
+      });
+    </script>
+  </head>
+  
+  <body style="margin: 0px; overflow: hidden;">
+    
+    <div id="splash">
+      <h1>🧸 Toy AR Lesson 🤖</h1>
+      <p style="font-size: 18px;">Click below, then scan the car picture!</p>
+      <button onclick="startARClass()">Start AR Class</button>
+    </div>
+
+    <button id="audioControl" onclick="playCarSound()">🔊</button>
+
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+             embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+             vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <audio id="carSoundAsset" src="./car_sound.mp3" preload="auto" crossorigin="anonymous"></audio>
+        <video id="carVideo" src="./car.mp4" response-type="arraybuffer" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 1" handler-car>
+        <a-text id="textCar" value="a car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
+        <a-video src="#carVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
+      </a-entity>
+
+      <a-entity id="soundCar" sound="src: #carSoundAsset; poolSize: 2"></a-entity>
+
+    </a-scene>
+  </body>
 </html>
