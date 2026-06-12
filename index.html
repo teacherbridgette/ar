@@ -2,103 +2,187 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Teacher Wynn's Class</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Toy Vocabulary AR Lesson</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
-    
-    <script src="https://unpkg.com/aframe-chromakey-material/dist/aframe-chromakey-material.min.js"></script>
     
     <style>
+      /* Safe-space resetting for clean portrait framing */
+      html, body {
+        margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+        font-family: 'SF Pro Text', -apple-system, 'Comic Sans MS', sans-serif;
+      }
+
       #splash {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: #2b3a42; color: white;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
-        z-index: 99999; font-family: 'Comic Sans MS', sans-serif; text-align: center;
+        z-index: 99999; text-align: center; padding: 20px; box-sizing: border-box;
       }
-      button {
-        padding: 15px 35px; font-size: 22px; font-weight: bold;
+      
+      .action-btn {
+        padding: 16px 36px; font-size: 22px; font-weight: bold;
         background-color: #ff5722; border: none; color: white;
-        border-radius: 12px; cursor: pointer; margin-top: 20px;
-        box-shadow: 0px 6px 0px #b33611;
+        border-radius: 16px; cursor: pointer; margin-top: 20px;
+        box-shadow: 0px 6px 0px #b33611; transition: transform 0.1s;
       }
-      button:active { transform: translateY(3px); box-shadow: 0px 3px 0px #b33611; }
+      .action-btn:active { transform: translateY(3px); box-shadow: 0px 3px 0px #b33611; }
 
-      /* Floating Sound Button Overlay */
-      #audioControl {
-        display: none; 
+      /* Fullscreen Portrait Card Panel - Triggers immediately upon scanning */
+      #uiOverlay {
+        display: none; /* Hidden until card is scanned */
         position: fixed;
-        bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
+        top: 0; left: 0; width: 100%; height: 100%;
         z-index: 999;
-        background: rgba(255, 235, 59, 0.95);
-        border: 4px solid #fff;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(43, 58, 66, 0.85); /* Sleek backdrop so camera is still slightly visible */
+        padding: window-fit(padding) 20px 50px 20px;
+        box-sizing: border-box;
+      }
+
+      /* Text Wrapper with Side-by-Side Speaker Icon */
+      .vocabulary-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 60px;
+      }
+
+      .vocabulary-text {
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: #FFEB3B;
+        margin: 0;
+        text-shadow: 0px 4px 8px rgba(0,0,0,0.5);
+      }
+
+      .speaker-icon-btn {
+        background: #fff;
+        border: none;
         border-radius: 50%;
-        width: 85px;
-        height: 85px;
-        font-size: 42px;
+        width: 65px;
+        height: 65px;
+        font-size: 32px;
         cursor: pointer;
-        box-shadow: 0px 6px 12px rgba(0,0,0,0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+      }
+
+      /* Native Video Display Box */
+      .video-box-container {
+        width: 85%;
+        max-width: 340px;
+        aspect-ratio: 1 / 1;
+        background: #000;
+        border: 6px solid #fff;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0px 12px 30px rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none; /* Stays hidden until the video play button is tapped */
+      }
+
+      /* Custom Video Play Canvas Button State Overlays */
+      #videoPlayOverlayBtn {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.4);
+        border: none;
+        color: white;
+        font-size: 60px;
+        cursor: pointer;
+        display: flex;
         align-items: center;
         justify-content: center;
       }
     </style>
 
     <script>
-      // Global reference for video element
-      let carVidElement = null;
+      let audioAsset = null;
+      let videoAsset = null;
 
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
 
-        // FORCE HARD BOOT: Force-play the video muted on this initial user gesture!
-        carVidElement = document.querySelector('#carVideo');
-        if (carVidElement) {
-          carVidElement.load();
-          // Playing and pausing quickly tricks the browser's hardware decoder into unlocking
-          carVidElement.play().then(() => {
-            carVidElement.pause();
-            carVidElement.currentTime = 0;
-          }).catch(err => console.log("Video gesture unlock failed:", err));
+        // Warm up and unlock core engines instantly on your first tap
+        audioAsset = document.getElementById('carAudioElement');
+        videoAsset = document.getElementById('carVideoElement');
+        
+        if (audioAsset) { audioAsset.load(); }
+        if (videoAsset) { videoAsset.load(); }
+        
+        // Micro-handshake for Speech Synthesis Engine setup
+        if ('speechSynthesis' in window) {
+          const warmUpSpeech = new SpeechSynthesisUtterance('');
+          window.speechSynthesis.speak(warmUpSpeech);
         }
       }
 
+      // Card detected action handler
       function targetFoundAction() {
-        if (carVidElement) {
-          carVidElement.muted = true;
-          carVidElement.currentTime = 0;
-          
-          // Execute play request
-          const playPromise = carVidElement.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(() => {
-              // Forced loop backup for strict iOS environments
-              carVidElement.muted = true;
-              carVidElement.play();
-            });
-          }
-        }
-        document.getElementById('audioControl').style.display = 'flex';
+        document.getElementById('uiOverlay').style.display = 'flex';
       }
 
+      // Card lost action handler
       function targetLostAction() {
-        if (carVidElement) {
-          carVidElement.pause();
+        document.getElementById('uiOverlay').style.display = 'none';
+        
+        // Reset media items cleanly if user pulls device away
+        if (videoAsset) {
+          videoAsset.pause();
+          videoAsset.style.display = 'none';
+          document.getElementById('videoPlayOverlayBtn').style.display = 'flex';
         }
-        document.getElementById('audioControl').style.display = 'none';
+        if (audioAsset) {
+          audioAsset.pause();
+        }
       }
 
-      function playCarSound() {
-        const audioEntity = document.querySelector('#soundCar');
-        if (audioEntity && audioEntity.components && audioEntity.components.sound) {
-          audioEntity.components.sound.playSound();
+      // Action: Play / Loop Video Control
+      function triggerVideoPlayback() {
+        if (videoAsset) {
+          document.getElementById('videoPlayOverlayBtn').style.display = 'none';
+          videoAsset.style.display = 'block';
+          videoAsset.currentTime = 0;
+          videoAsset.play().catch(e => console.log("Video Playback blocked:", e));
         }
       }
 
-      // Explicit target tracking component registry
+      // Action: Speak out loud via Speech Engine + Play custom MP3 background track simultaneously
+      function triggerVocalSpeakerSystem() {
+        // 1. Fire local backing MP3 tracking track
+        if (audioAsset) {
+          audioAsset.currentTime = 0;
+          audioAsset.play().catch(e => console.log("Audio file blocked:", e));
+        }
+
+        // 2. Fire clean robotic text-to-speech engine out loud matching user prompt requests
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel(); // Stops text strings from overlapping stacking
+          const utterance = new SpeechSynthesisUtterance('a car');
+          utterance.rate = 0.85; 
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
+      // Explicit scanning link integration
       AFRAME.registerComponent('handler-car', { 
         init: function () {
           this.el.addEventListener('targetFound', () => targetFoundAction());
@@ -108,49 +192,39 @@
     </script>
   </head>
   
-  <body style="margin: 0px; overflow: hidden;">
+  <body>
     
     <div id="splash">
       <h1>🧸 Toy AR Lesson 🤖</h1>
-      <p style="font-size: 18px;">Click below, then scan the car picture!</p>
-      <button onclick="startARClass()">Start AR Class</button>
+      <p style="font-size: 18px; margin: 5px 0 15px 0;">Hold iPhone in Portrait mode, click below, then scan!</p>
+      <button class="action-btn" onclick="startARClass()">Start AR Class</button>
     </div>
 
-    <button id="audioControl" onclick="playCarSound()">🔊</button>
+    <div id="uiOverlay">
+      
+      <div class="vocabulary-row">
+        <h1 class="vocabulary-text">a car</h1>
+        <button class="speaker-icon-btn" onclick="triggerVocalSpeakerSystem()">🔊</button>
+      </div>
+
+      <div class="video-box-container">
+        <button id="videoPlayOverlayBtn" onclick="triggerVideoPlayback()">▶️</button>
+        <video id="carVideoElement" src="car.mp4" loop playsinline webkit-playsinline></video>
+      </div>
+
+      <p style="color: #fff; font-size: 14px; opacity: 0.7; margin: 0; font-weight: bold;">Move camera away to clear screen</p>
+    </div>
+
+    <audio id="carAudioElement" src="car_sound.mp3" preload="auto" crossorigin="anonymous"></audio>
 
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; uiLoading: yes; uiScanning: yes; uiError: yes;" 
              embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
-      <a-assets>
-        <audio id="carSoundAsset" src="car_sound.mp3" preload="auto" crossorigin="anonymous"></audio>
-        
-        <video id="carVideo" 
-               src="car.mp4" 
-               preload="auto" 
-               loop="true" 
-               crossorigin="anonymous" 
-               playsinline 
-               webkit-playsinline 
-               muted></video>
-      </a-assets>
-
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-      <a-entity mindar-image-target="targetIndex: 1" handler-car>
-        
-        <a-text id="textCar" value="a car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
-        
-        <a-entity geometry="primitive: plane; width: 1; height: 1" 
-                  material="shader: chromakey; src: #carVideo; color: 0.0 1.0 0.0"
-                  position="0 0 0.1"
-                  rotation="0 0 0">
-        </a-entity>
-
-      </a-entity>
-
-      <a-entity id="soundCar" sound="src: #carSoundAsset; poolSize: 2"></a-entity>
-
+      
+      <a-entity mindar-image-target="targetIndex: 1" handler-car></a-entity>
     </a-scene>
+
   </body>
 </html>
