@@ -2,38 +2,33 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Toy Vocabulary Lesson</title>
+    <title>Toy Vocabulary Portrait AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     
     <style>
       html, body {
         margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-        font-family: 'SF Pro Text', -apple-system, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background-color: #000;
       }
 
-      /* THE IPHONE WHITE SCREEN CURE:
-         Forces the entire A-Frame tracking structure to behave as an invisible window pane.
-         This prevents WebGL rendering limits from painting a solid white overlay mask.
-      */
-      a-scene, canvas, .mindar-ui-loading, .mindar-ui-scanning {
+      /* Native Video Element created by AR.js for the webcam background */
+      #arjs-video {
         position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
+        top: 0 !important; left: 0 !important;
+        width: 100% !important; height: 100% !important;
+        object-fit: cover !important;
         z-index: 1 !important;
-        opacity: 0.99 !important;
       }
 
       #splash {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: #2b3a42; color: white;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
-        z-index: 99999 !important; text-align: center; padding: 20px; box-sizing: border-box;
+        z-index: 99999; text-align: center; padding: 20px; box-sizing: border-box;
       }
       
       .action-btn {
@@ -43,17 +38,17 @@
         box-shadow: 0px 6px 0px #b33611;
       }
 
-      /* Native Fullscreen UI Panel Wrapper */
+      /* Fullscreen Native UI Layer */
       #uiOverlay {
-        display: none; /* Triggers via script listener when targets flash */
+        display: none; /* Controlled via script on target detect */
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 9999 !important; /* Forces layout safely above canvas layers */
+        z-index: 9999 !important;
         flex-direction: column;
         justify-content: space-between;
         align-items: center;
-        background: rgba(43, 58, 66, 0.85); 
-        padding: calc(env(safe-area-inset-top) + 25px) 20px calc(env(safe-area-inset-bottom) + 30px) 20px;
+        background: rgba(43, 58, 66, 0.8); 
+        padding: calc(env(safe-area-inset-top) + 30px) 20px calc(env(safe-area-inset-bottom) + 40px) 20px;
         box-sizing: border-box;
       }
 
@@ -65,62 +60,30 @@
       }
 
       .vocabulary-text {
-        font-size: 3.5rem;
-        font-weight: 900;
-        color: #FFEB3B;
-        margin: 0;
+        font-size: 3.5rem; font-weight: 900; color: #FFEB3B; margin: 0;
         text-shadow: 0px 4px 8px rgba(0,0,0,0.6);
       }
 
       .speaker-icon-btn {
-        background: #fff;
-        border: none;
-        border-radius: 50%;
-        width: 70px;
-        height: 70px;
-        font-size: 36px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: #fff; border: none; border-radius: 50%;
+        width: 70px; height: 70px; font-size: 36px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
         box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
       }
 
-      /* Native iOS Hardware Boxed Video Frame Container */
       .video-box-container {
-        width: 85%;
-        max-width: 320px;
-        aspect-ratio: 1 / 1;
-        background: #111;
-        border: 6px solid #fff;
-        border-radius: 28px;
-        overflow: hidden;
-        box-shadow: 0px 16px 36px rgba(0,0,0,0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
+        width: 85%; max-width: 320px; aspect-ratio: 1 / 1;
+        background: #111; border: 6px solid #fff; border-radius: 28px;
+        overflow: hidden; box-shadow: 0px 16px 36px rgba(0,0,0,0.6);
+        display: flex; align-items: center; justify-content: center; position: relative;
       }
 
-      #carVideoElement {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover;
-        display: none;
-      }
+      #carVideoElement { width: 100%; height: 100%; object-fit: cover; display: none; }
 
       #videoPlayOverlayBtn {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        border: none;
-        color: white;
-        font-size: 65px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+        border: none; color: white; font-size: 65px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
       }
     </style>
 
@@ -131,54 +94,46 @@
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
 
-        // Direct device media registry call
         audioAsset = document.getElementById('carAudioElement');
         videoAsset = document.getElementById('carVideoElement');
         
-        if (audioAsset) { audioAsset.load(); }
-        if (videoAsset) { videoAsset.load(); }
+        if (audioAsset) audioAsset.load();
+        if (videoAsset) videoAsset.load();
         
-        // Force an active system audio callback handshake
         if ('speechSynthesis' in window) {
-          const warmUpSpeech = new SpeechSynthesisUtterance('');
-          window.speechSynthesis.speak(warmUpSpeech);
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
         }
       }
 
-      function targetFoundAction() {
+      // UI Control Hooks
+      window.addEventListener('nft-found', function() {
         document.getElementById('uiOverlay').style.display = 'flex';
-      }
+      });
 
-      function targetLostAction() {
+      window.addEventListener('nft-lost', function() {
         document.getElementById('uiOverlay').style.display = 'none';
-        
         if (videoAsset) {
           videoAsset.pause();
           videoAsset.style.display = 'none';
           document.getElementById('videoPlayOverlayBtn').style.display = 'flex';
         }
-        if (audioAsset) {
-          audioAsset.pause();
-        }
-      }
+        if (audioAsset) audioAsset.pause();
+      });
 
-      // Play/Loop Video Engine Controls
       function triggerVideoPlayback() {
         if (videoAsset) {
           document.getElementById('videoPlayOverlayBtn').style.display = 'none';
           videoAsset.style.display = 'block';
           videoAsset.currentTime = 0;
-          videoAsset.play().catch(e => console.log("Video setup stalled:", e));
+          videoAsset.play().catch(e => console.log(e));
         }
       }
 
-      // Combined Vocal Track Trigger (MP3 Tracking + Speech Engine synthesis execution)
       function triggerVocalSpeakerSystem() {
         if (audioAsset) {
           audioAsset.currentTime = 0;
-          audioAsset.play().catch(e => console.log("Audio track blocked:", e));
+          audioAsset.play().catch(e => console.log(e));
         }
-
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel(); 
           const utterance = new SpeechSynthesisUtterance('a car');
@@ -186,19 +141,11 @@
           window.speechSynthesis.speak(utterance);
         }
       }
-
-      // Background handler tracker listener configuration links
-      AFRAME.registerComponent('handler-car', { 
-        init: function () {
-          this.el.addEventListener('targetFound', () => targetFoundAction());
-          this.el.addEventListener('targetLost', () => targetLostAction());
-        }
-      });
     </script>
   </head>
   
   <body>
-    
+
     <div id="splash">
       <h1>🧸 Toy AR Lesson 🤖</h1>
       <p style="font-size: 18px; margin: 5px 0 15px 0;">Hold iPhone in Portrait, click below, then scan!</p>
@@ -216,17 +163,24 @@
         <video id="carVideoElement" src="car.mp4" loop playsinline webkit-playsinline></video>
       </div>
 
-      <p style="color: #fff; font-size: 14px; opacity: 0.8; margin: 0; font-weight: bold;">Move camera away to look at another toy</p>
+      <p style="color: #fff; font-size: 14px; opacity: 0.8; margin: 0; font-weight: bold;">Move camera away to scan another item</p>
     </div>
 
     <audio id="carAudioElement" src="car_sound.mp3" preload="auto" crossorigin="anonymous"></audio>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; uiLoading: yes; uiScanning: yes; uiError: yes;" 
-             embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
-             vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-scene vr-mode-ui="enabled: false"
+             embedded
+             arjs="sourceType: webcam; debugUIEnabled: false;">
       
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-      <a-entity mindar-image-target="targetIndex: 1" handler-car></a-entity>
+      <a-nft type="nft"
+             url="./car_target"
+             smooth="true"
+             smoothCount="10"
+             smoothTolerance=".01"
+             smoothThreshold="5">
+      </a-nft>
+
+      <a-entity camera></a-entity>
     </a-scene>
 
   </body>
