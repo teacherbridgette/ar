@@ -21,45 +21,76 @@
         padding: 15px 35px; font-size: 22px; font-weight: bold;
         background-color: #ff5722; border: none; color: white;
         border-radius: 12px; cursor: pointer; margin-top: 20px;
+        box-shadow: 0px 6px 0px #b33611;
       }
+      button:active { transform: translateY(3px); box-shadow: 0px 3px 0px #b33611; }
     </style>
 
     <script>
-      function startARClass() {
-        document.getElementById('splash').style.display = 'none';
-      }
+      // Component tracking logic registered cleanly BEFORE the HTML bodies load
+      AFRAME.registerComponent('handler-robot', { init: function () {
+        this.el.addEventListener('targetFound', () => {
+          const video = document.querySelector('#robotVideo');
+          if (video) video.play();
+          const sound = document.querySelector('#soundChime');
+          if (sound && sound.components.sound) sound.components.sound.playSound();
+        });
+        this.el.addEventListener('targetLost', () => {
+          const video = document.querySelector('#robotVideo');
+          if (video) video.pause();
+        });
+      }});
 
-      function targetFound(videoId, soundId) {
-        const video = document.querySelector(videoId);
-        if (video) video.play();
+      AFRAME.registerComponent('handler-car', { init: function () {
+        this.el.addEventListener('targetFound', () => {
+          const video = document.querySelector('#carVideo');
+          if (video) video.play();
+          const sound = document.querySelector('#soundCar');
+          if (sound && sound.components.sound) sound.components.sound.playSound();
+        });
+        this.el.addEventListener('targetLost', () => {
+          const video = document.querySelector('#carVideo');
+          if (video) video.pause();
+        });
+      }});
 
-        const sound = document.querySelector(soundId);
-        if (sound && sound.components && sound.components.sound) {
-          sound.components.sound.playSound();
+      AFRAME.registerComponent('handler-yoyo', { init: function () {
+        this.el.addEventListener('targetFound', () => {
+          const video = document.querySelector('#yoyoVideo');
+          if (video) video.play();
+          const sound = document.querySelector('#soundChime');
+          if (sound && sound.components.sound) sound.components.sound.playSound();
+        });
+        this.el.addEventListener('targetLost', () => {
+          const video = document.querySelector('#yoyoVideo');
+          if (video) video.pause();
+        });
+      }});
+
+      AFRAME.registerComponent('handler-doll', { init: function () {
+        this.el.addEventListener('targetFound', () => {
+          const video = document.querySelector('#dollVideo');
+          if (video) video.play();
+          const sound = document.querySelector('#soundChime');
+          if (sound && sound.components.sound) sound.components.sound.playSound();
+        });
+        this.el.addEventListener('targetLost', () => {
+          const video = document.querySelector('#dollVideo');
+          if (video) video.pause();
+        });
+      }});
+
+      // Function to explicitly prompt browser camera permissions on click
+      async function startARClass() {
+        try {
+          // Explicitly demand device camera permission stream from the system
+          await navigator.mediaDevices.getUserMedia({ video: true });
+          document.getElementById('splash').style.display = 'none';
+        } catch (err) {
+          alert("Camera access was blocked or denied! Please enable camera access in your browser settings.");
+          console.error("Camera access error:", err);
         }
       }
-
-      function targetLost(videoId) {
-        const video = document.querySelector(videoId);
-        if (video) video.pause();
-      }
-
-      AFRAME.registerComponent('handler-robot', { init: function () {
-        this.el.addEventListener('targetFound', () => targetFound('#robotVideo', '#soundChime'));
-        this.el.addEventListener('targetLost', () => targetLost('#robotVideo'));
-      }});
-      AFRAME.registerComponent('handler-car', { init: function () {
-        this.el.addEventListener('targetFound', () => targetFound('#carVideo', '#soundCar'));
-        this.el.addEventListener('targetLost', () => targetLost('#carVideo'));
-      }});
-      AFRAME.registerComponent('handler-yoyo', { init: function () {
-        this.el.addEventListener('targetFound', () => targetFound('#yoyoVideo', '#soundChime'));
-        this.el.addEventListener('targetLost', () => targetLost('#yoyoVideo'));
-      }});
-      AFRAME.registerComponent('handler-doll', { init: function () {
-        this.el.addEventListener('targetFound', () => targetFound('#dollVideo', '#soundChime'));
-        this.el.addEventListener('targetLost', () => targetLost('#dollVideo'));
-      }});
     </script>
   </head>
   
@@ -67,10 +98,11 @@
     
     <div id="splash">
       <h1>🧸 Toy AR Lesson 🤖</h1>
+      <p style="font-size: 18px;">Grant camera access to begin!</p>
       <button onclick="startARClass()">Start AR Class</button>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" 
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no;" 
              embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
