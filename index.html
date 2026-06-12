@@ -8,6 +8,9 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
     
+    <script src="https://unpkg.com/aframe-text-geometry-component@0.5.1/dist/aframe-text-geometry-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    
     <style>
       #splash {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -25,77 +28,77 @@
     </style>
 
     <script>
-      let activeSequences = { 'doll': false, 'yo-yo': false, 'robot': false, 'car': false };
+      let activeSequences = { 'robot': false, 'car': false, 'yo-yo': false, 'doll': false };
 
       function startARClass() {
-        // Hide splash screen
         document.getElementById('splash').style.display = 'none';
-        
-        // Explicitly trigger speech engine baseline to satisfy browser mobile security policies
         if ('speechSynthesis' in window) {
           const unlock = new SpeechSynthesisUtterance('');
           window.speechSynthesis.speak(unlock);
         }
       }
 
-      function runToySequence(toyName, textId, soundId) {
+      function runToySequence(toyName, textId, soundId, article) {
         if (activeSequences[toyName]) return; 
         activeSequences[toyName] = true;
 
         const textEntity = document.querySelector(textId);
         const audioEntity = document.querySelector(soundId);
 
-        // Reset text value in case it was modified on a previous scan
-        textEntity.setAttribute('value', toyName);
-        speak(toyName);
+        // Stage 1: Say and show initial short text ("a robot")
+        textEntity.setAttribute('text-geometry', `value: ${article} ${toyName}; size: 0.18; height: 0.04; bevelEnabled: true; bevelSize: 0.005; bevelThickness: 0.01;`);
+        speak(`${article} ${toyName}`);
 
+        // Stage 2: Move upward and change to full sentence
         setTimeout(() => {
-          textEntity.setAttribute('value', `This is a ${toyName}.`);
+          textEntity.setAttribute('text-geometry', `value: This is a ${toyName}.; size: 0.14; height: 0.03;`);
           textEntity.setAttribute('animation__move', {
             property: 'position',
-            to: '0 0.6 0.2',
-            dur: 2000,
+            to: '-0.4 0.5 0.3', // centers and lifts the 3D block text
+            dur: 1500,
             easing: 'easeInOutQuad'
           });
           speak(`This is a ${toyName}.`);
-        }, 2000);
+        }, 2500);
 
+        // Stage 3: Play Magic Sound effect
         setTimeout(() => {
           if (audioEntity && audioEntity.components && audioEntity.components.sound) {
             audioEntity.components.sound.playSound();
           }
         }, 4500);
 
+        // Stage 4: Plural lesson change
         setTimeout(() => {
           let plural = toyName === 'doll' ? 'dolls' : toyName === 'car' ? 'cars' : toyName === 'robot' ? 'robots' : 'yo-yos';
-          textEntity.setAttribute('value', `1 ${toyName}, 2 ${plural}.`);
+          textEntity.setAttribute('text-geometry', `value: 1 ${toyName}, 2 ${plural}.; size: 0.12; height: 0.03;`);
           speak(`1 ${toyName}, 2 ${plural}.`);
           
-          // Allow tracking to run again after 3 seconds of showing the plural phrase
-          setTimeout(() => { activeSequences[toyName] = false; }, 3000);
+          // Reset tracking loop sequence
+          setTimeout(() => { activeSequences[toyName] = false; }, 4000);
         }, 7000);
       }
 
       function speak(phrase) {
         if ('speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(phrase);
-          utterance.rate = 0.85; 
+          utterance.rate = 0.8; 
           window.speechSynthesis.speak(utterance);
         }
       }
 
-      // Register components cleanly BEFORE the DOM constructs them
-      AFRAME.registerComponent('handler-doll', { init: function () {
-        this.el.addEventListener('targetFound', () => { runToySequence('doll', '#textDoll', '#soundChime'); });
-      }});
-      AFRAME.registerComponent('handler-yoyo', { init: function () {
-        this.el.addEventListener('targetFound', () => { runToySequence('yo-yo', '#textYoyo', '#soundChime'); });
-      }});
+      // Event handlers set up to trigger on target scan
       AFRAME.registerComponent('handler-robot', { init: function () {
-        this.el.addEventListener('targetFound', () => { runToySequence('robot', '#textRobot', '#soundChime'); });
+        this.el.addEventListener('targetFound', () => { runToySequence('robot', '#textRobot', '#soundChime', 'a'); });
       }});
       AFRAME.registerComponent('handler-car', { init: function () {
-        this.el.addEventListener('targetFound', () => { runToySequence('car', '#textCar', '#soundChime'); });
+        this.el.addEventListener('targetFound', () => { runToySequence('car', '#textCar', '#soundChime', 'a'); });
+      }});
+      AFRAME.registerComponent('handler-yoyo', { init: function () {
+        this.el.addEventListener('targetFound', () => { runToySequence('yo-yo', '#textYoyo', '#soundChime', 'a'); });
+      }});
+      AFRAME.registerComponent('handler-doll', { init: function () {
+        this.el.addEventListener('targetFound', () => { runToySequence('doll', '#textDoll', '#soundChime', 'a'); });
       }});
     </script>
   </head>
@@ -108,34 +111,51 @@
       <button onclick="startARClass()">Start AR Class</button>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" 
              embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-assets>
+        <a-asset-item id="optimerBold" src="https://rawgit.com/mrdoob/three.js/dev/examples/fonts/optimer_bold.typeface.json"></a-asset-item>
         <audio id="magicChime" src="https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg" preload="auto"></audio>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0" handler-doll>
-        <a-text id="textDoll" value="doll" align="center" color="#E91E63" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      <a-entity mindar-image-target="targetIndex: 0" handler-robot>
+        <a-entity id="textRobot" 
+                  text-geometry="value: a robot; font: #optimerBold; size: 0.18; height: 0.04;" 
+                  material="color: #00BCD4; roughness: 0.3" 
+                  position="-0.3 0 0.1"
+                  look-at="[a-camera]">
+        </a-entity>
       </a-entity>
 
-      <a-entity mindar-image-target="targetIndex: 1" handler-yoyo>
-        <a-text id="textYoyo" value="yo-yo" align="center" color="#4CAF50" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      <a-entity mindar-image-target="targetIndex: 1" handler-car>
+        <a-entity id="textCar" 
+                  text-geometry="value: a car; font: #optimerBold; size: 0.18; height: 0.04;" 
+                  material="color: #FFEB3B; roughness: 0.3" 
+                  position="-0.2 0 0.1"
+                  look-at="[a-camera]">
+        </a-entity>
       </a-entity>
 
-      <a-entity mindar-image-target="targetIndex: 2" handler-robot>
-        <a-text id="textRobot" value="robot" align="center" color="#00BCD4" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      <a-entity mindar-image-target="targetIndex: 2" handler-yoyo>
+        <a-entity id="textYoyo" 
+                  text-geometry="value: a yo-yo; font: #optimerBold; size: 0.18; height: 0.04;" 
+                  material="color: #4CAF50; roughness: 0.3" 
+                  position="-0.3 0 0.1"
+                  look-at="[a-camera]">
+        </a-entity>
       </a-entity>
 
-      <a-entity mindar-image-target="targetIndex: 3" handler-car>
-        <a-text id="textCar" value="car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      <a-entity mindar-image-target="targetIndex: 3" handler-doll>
+        <a-entity id="textDoll" 
+                  text-geometry="value: a doll; font: #optimerBold; size: 0.18; height: 0.04;" 
+                  material="color: #E91E63; roughness: 0.3" 
+                  position="-0.2 0 0.1"
+                  look-at="[a-camera]">
+        </a-entity>
       </a-entity>
 
       <a-entity id="soundChime" sound="src: #magicChime; poolSize: 4"></a-entity>
