@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Toy Vocabulary AR Lesson</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <style>
+      /* Friendly classroom splash screen */
+      #splash {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #2b3a42; color: white;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        z-index: 99999; font-family: 'Comic Sans MS', 'Fredoka One', sans-serif; text-align: center;
+      }
+      button {
+        padding: 15px 35px; font-size: 22px; font-weight: bold;
+        background-color: #ff5722; border: none; color: white;
+        border-radius: 12px; cursor: pointer; margin-top: 20px;
+        box-shadow: 0px 6px 0px #b33611;
+      }
+      button:active { transform: translateY(3px); box-shadow: 0px 3px 0px #b33611; }
+    </style>
+  </head>
+  
+  <body style="margin: 0px; overflow: hidden;">
+    
+    <div id="splash">
+      <h1>🧸 Toy AR Lesson 🤖</h1>
+      <p style="font-size: 18px;">Click below, then scan a toy picture!</p>
+      <button onclick="startARClass()">Start AR Class</button>
+    </div>
+
+    <script>
+      // Tracking states to prevent overlapping audio loops
+      let activeSequences = { yo-yo: false, robot: false, doll: false, kite: false };
+
+      function startARClass() {
+        document.getElementById('splash').style.display = 'none';
+        // Unlock speech engine for mobile/iPad browsers
+        const unlock = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(unlock);
+      }
+
+      // Reusable animation and speech routine for the toys
+      function runToySequence(toyName, textId, soundId) {
+        if (activeSequences[toyName]) return; // Stop if already running
+        activeSequences[toyName] = true;
+
+        const textEntity = document.querySelector(textId);
+        const audioEntity = document.querySelector(soundId);
+
+        // 1. Instantly say the vocabulary word
+        speak(toyName);
+
+        // 2. At 2 seconds: Change text to "This is a ___.", glide up, and speak the sentence
+        setTimeout(() => {
+          textEntity.setAttribute('value', `This is a ${toyName}.`);
+          textEntity.setAttribute('animation__move', {
+            property: 'position',
+            to: '0 0.6 0.2',
+            dur: 2000,
+            easing: 'easeInOutQuad'
+          });
+          speak(`This is a ${toyName}.`);
+        }, 2000);
+
+        // 3. At 4.5 seconds: Play a magical toy chime sound effect
+        setTimeout(() => {
+          if (audioEntity && audioEntity.components.sound) {
+            audioEntity.components.sound.playSound();
+          }
+        }, 4500);
+
+        // 4. At 7 seconds: Count "1 [toy], 2 [toy]s."
+        setTimeout(() => {
+          let plural = toyName === 'doll' ? 'dolls' : toyName === 'kite' ? 'kites' : toyName === 'robot' ? 'robots' : 'yo-yos';
+          textEntity.setAttribute('value', `1 ${toyName}, 2 ${plural}.`);
+          speak(`1 ${toyName}, 2 ${plural}.`);
+        }, 7000);
+      }
+
+      function speak(phrase) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(phrase);
+          utterance.rate = 0.85; // Slower cadence clear for EFL/young learners
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
+      // Register separate components for each tracking target
+      AFRAME.registerComponent('handler-yoyo', { init: function () {
+        this.el.addEventListener('targetFound', () => runToySequence('yo-yo', '#textYoyo', '#soundChime'));
+      }});
+      AFRAME.registerComponent('handler-robot', { init: function () {
+        this.el.addEventListener('targetFound', () => runToySequence('robot', '#textRobot', '#soundChime'));
+      }});
+      AFRAME.registerComponent('handler-doll', { init: function () {
+        this.el.addEventListener('targetFound', () => runToySequence('doll', '#textDoll', '#soundChime'));
+      }});
+      AFRAME.registerComponent('handler-kite', { init: function () {
+        this.el.addEventListener('targetFound', () => runToySequence('kite', '#textKite', '#soundChime'));
+      }});
+    </script>
+
+    <a-scene mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.5/examples/image-tracking/assets/band-example/band.mind;" 
+             embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+             vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <audio id="magicChime" src="https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg" preload="auto"></audio>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0" handler-yoyo>
+        <a-text id="textYoyo" value="yo-yo" align="center" color="#4CAF50" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      </a-entity>
+
+      <a-entity mindar-image-target="targetIndex: 1" handler-robot>
+        <a-text id="textRobot" value="robot" align="center" color="#00BCD4" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      </a-entity>
+
+      <a-entity mindar-image-target="targetIndex: 2" handler-doll>
+        <a-text id="textDoll" value="doll" align="center" color="#E91E63" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      </a-entity>
+
+      <a-entity mindar-image-target="targetIndex: 3" handler-kite>
+        <a-text id="textKite" value="kite" align="center" color="#FFEB3B" font="kelsonsans" position="0 0 0.2" scale="1.2 1.2 1.2"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"></a-text>
+      </a-entity>
+
+      <a-entity id="soundChime" sound="src: #magicChime; poolSize: 4"></a-entity>
+
+    </a-scene>
+  </body>
+</html>
