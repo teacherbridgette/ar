@@ -26,13 +26,13 @@
 
       /* The Sound Overlay Icon Button */
       #audioControl {
-        display: none; /* Hidden until target is scanned */
+        display: none; 
         position: fixed;
         bottom: 40px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 999;
-        background: rgba(255, 235, 59, 0.9); /* Bright yellow matching car theme */
+        background: rgba(255, 235, 59, 0.9);
         border: 4px solid #fff;
         border-radius: 50%;
         width: 80px;
@@ -46,31 +46,48 @@
     </style>
 
     <script>
-      // Safe initialization pipeline
       function startARClass() {
         document.getElementById('splash').style.display = 'none';
+
+        // Critical: Force the browser to initialize and cache the video stream on first user tap
+        const video = document.querySelector('#carVideo');
+        if (video) {
+          video.load();
+          video.play().then(() => {
+            video.pause();
+          }).catch(e => console.log("Video setup error:", e));
+        }
       }
 
-      // Play video immediately on scan
       function targetFoundAction(videoId) {
         const video = document.querySelector(videoId);
         if (video) { 
-          video.muted = true; 
-          video.play().catch(e => console.log(e)); 
+          video.muted = true;
+          // Safari fix: resetting current time kicks the rendering loop alive
+          video.currentTime = 0; 
+          
+          // Force a play statement that updates A-Frame textures
+          let playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              // Video texture is rendering cleanly
+            }).catch(e => {
+              console.log("Playback engine stalled:", e);
+              // Fallback fallback: try playing it muted directly via native DOM
+              video.muted = true;
+              video.play();
+            });
+          }
         }
-        // Show the sound button on screen
         document.getElementById('audioControl').style.display = 'flex';
       }
 
-      // Pause video when camera loses the target
       function targetLostAction(videoId) {
         const video = document.querySelector(videoId);
         if (video) video.pause();
-        // Hide the sound button
         document.getElementById('audioControl').style.display = 'none';
       }
 
-      // Manual Audio Trigger Function for the Button Click
       function playCarSound() {
         const audioEntity = document.querySelector('#soundCar');
         if (audioEntity && audioEntity.components && audioEntity.components.sound) {
@@ -78,7 +95,6 @@
         }
       }
 
-      // Event Tracking Registration Map matching your target index
       AFRAME.registerComponent('handler-car', { 
         init: function () {
           this.el.addEventListener('targetFound', () => targetFoundAction('#carVideo'));
@@ -103,14 +119,24 @@
              vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <audio id="carSoundAsset" src="./car_sound.mp3" preload="auto" crossorigin="anonymous"></audio>
-        <video id="carVideo" src="./car.mp4" response-type="arraybuffer" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <audio id="carSoundAsset" src="car_sound.mp3" preload="auto" crossorigin="anonymous"></audio>
+        
+        <video id="carVideo" 
+               src="car.mp4" 
+               preload="auto" 
+               loop="true" 
+               crossorigin="anonymous" 
+               playsinline 
+               webkit-playsinline 
+               autoplay
+               muted></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 1" handler-car>
         <a-text id="textCar" value="a car" align="center" color="#FFEB3B" font="kelsonsans" position="0 0.4 0.2" scale="1.4 1.4 1.4" look-at="[a-camera]"></a-text>
+        
         <a-video src="#carVideo" width="1" height="1" position="0 0 0.1" rotation="0 0 0"></a-video>
       </a-entity>
 
